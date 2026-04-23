@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN, CONF_BASE_URL, CONF_ACCESS_TOKEN, LOGGER
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["calendar"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Canvas Student from a config entry."""
