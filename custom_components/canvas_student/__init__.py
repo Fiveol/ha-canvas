@@ -1,7 +1,6 @@
 import datetime
 import logging
 import aiohttp
-import asyncio
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -13,80 +12,63 @@ from .const import DOMAIN, CONF_BASE_URL, CONF_ACCESS_TOKEN, LOGGER
 PLATFORMS = ["calendar"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Canvas Student from a config entry."""
+    """Set up Canvas Student."""
     
     async def async_update_data():
-        """Fetch all assignments for the calculated school year range."""
         base_url = entry.data[CONF_BASE_URL].rstrip("/")
         token = entry.data[CONF_ACCESS_TOKEN]
         headers = {"Authorization": f"Bearer {token}"}
         
+        # Determine dates
         now = datetime.datetime.now()
-        
-        # --- SCHOOL YEAR LOGIC ---
-        # September 1st to August 31st
-        if now.month >= 9:
-            # SEPT - DEC: Load current year only
-            start_dt = datetime.date(now.year, 9, 1)
-            end_dt = datetime.date(now.year + 1, 8, 31)
-        elif now.month >= 6:
-            # JUNE - AUG: Load previous year AND next year (2 year span)
-            start_dt = datetime.date(now.year - 1, 9, 1)
-            end_dt = datetime.date(now.year + 1, 8, 31)
+        if now.month >= 6:
+            start_date, end_date = f"{now.year-1}-09-01", f"{now.year+1}-08-31"
         else:
-            # JAN - MAY: Load current academic year (started last Sept)
-            start_dt = datetime.date(now.year - 1, 9, 1)
-            end_dt = datetime.date(now.year, 8, 31)
-
-        num_days = (end_dt - start_dt).days
-        # Goal: 128 events per day max capacity
-        total_capacity = num_days * 128 
-        
-        LOGGER.info("Canvas: Loading %s days of assignments (Limit: %s)", num_days, total_capacity)
-
-        all_events = []
-        # Canvas API endpoint for multiple items
-        url = f"{base_url}/api/v1/calendar_events"
-        params = {
-            "type": "assignment",
-            "start_date": start_dt.isoformat(),
-            "end_date": end_dt.isoformat(),
-            "per_page": 100  # Request in blocks of 100
-        }
+            start_date, end_date = f"{now.year-1}-09-01", f"{now.year}-08-31"
 
         async with aiohttp.ClientSession() as session:
-            next_url = url
-            while next_url and len(all_events) < total_capacity:
-                try:
-                    async with session.get(next_url, headers=headers, params=params if next_url == url else None) as response:
-                        if response.status != 200:
-                            LOGGER.error("Canvas API Error %s", response.status)
-                            break
-                        
-                        data = await response.json()
-                        all_events.extend(data)
-                        
-                        # --- PAGINATION LOGIC ---
-                        # Canvas sends a 'Link' header for the next page
-                        next_url = None
-                        links = response.headers.get("Link", "")
-                        if 'rel="next"' in links:
-                            # Extract the URL between < and >
-                            parts = links.split(",")
-                            for part in parts:
-                                if 'rel="next"' in part:
-                                    next_url = part.split(";")[0].strip("<> ")
-                except Exception as err:
-                    LOGGER.error("Fetch failed: %s", err)
-                    break
+            # 1. GET COURSE CONTEXT CODES (Crucial for seeing assignments)
+            courses = []
+            async with session.get(f"{base_url}/api/v1/courses", headers=headers) as resp:
+                if resp.status == 200:
+                    course_data = await resp.json()
+                    courses = [f"course_{c['id']}" for c in course_data if 'id' in c]
             
-            LOGGER.info("Canvas Sync Complete: %s assignments found", len(all_events))
+            # 2. FETCH CALENDAR EVENTS
+            all_events = []
+            url = f"{base_url}/api/v1/calendar_events"
+            params = {
+                "type": "assignment",
+                "start_date": start_date,
+                "end_date": end_date,
+                "per_page": 100,
+                "context_codes[]": courses + ["user_self"] # Include courses + personal
+            }
+
+            curr_url = url
+            while curr_url:
+                async with session.get(curr_url, headers=headers, params=params if curr_url == url else None) as resp:
+                    if resp.status != 200:
+                        LOGGER.error("Canvas API Error: %s", resp.status)
+                        break
+                    
+                    batch = await resp.json()
+                    all_events.extend(batch)
+                    
+                    # Pagination logic
+                    curr_url = None
+                    links = resp.headers.get("Link", "")
+                    if 'rel="next"' in links:
+                        parts = links.split(",")
+                        for part in parts:
+                            if 'rel="next"' in part:
+                                curr_url = part.split(";")[0].strip("<> ")
+
+            LOGGER.info("Canvas: Successfully synced %s assignments", len(all_events))
             return all_events
 
     coordinator = DataUpdateCoordinator(
-        hass,
-        LOGGER,
-        name=DOMAIN,
+        hass, LOGGER, name=DOMAIN,
         update_method=async_update_data,
         update_interval=timedelta(hours=6),
     )
@@ -97,7 +79,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
