@@ -22,7 +22,7 @@ class CanvasGradeSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._course_id = course["id"]
         self._attr_name = f"{course['name']} Grade"
-        self._attr_unique_id = f"canvas_grade_{self._course_id}"
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_grade_{self._course_id}"
         
         # This makes it pretty in the UI with a % sign and a graph
         self._attr_native_unit_of_measurement = "%"
