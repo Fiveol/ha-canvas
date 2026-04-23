@@ -1,6 +1,7 @@
-from datetime import timedelta
+import datetime
 import logging
 import aiohttp
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -14,37 +15,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Canvas Student from a config entry."""
     
     async def async_update_data():
-        """Fetch data from Canvas API."""
+        """Fetch data from Canvas API for the current school year."""
         base_url = entry.data[CONF_BASE_URL].rstrip("/")
         token = entry.data[CONF_ACCESS_TOKEN]
         headers = {"Authorization": f"Bearer {token}"}
         
+        # Calculate School Year boundaries
+        now = datetime.datetime.now()
+        current_year = now.year
+        
+        # Rule: From June 1st onwards, look ahead to the NEXT August.
+        # Otherwise, look at the current academic year ending this August.
+        if now.month >= 6:
+            start_date = f"{current_year}-09-01" # Next school year start
+            end_date = f"{current_year + 1}-08-31"
+            # To keep the "current" late-spring/summer stuff visible:
+            start_date = f"{current_year - 1}-09-01" 
+        else:
+            start_date = f"{current_year - 1}-09-01"
+            end_date = f"{current_year}-08-31"
+
+        params = {
+            "type": "assignment",
+            "start_date": start_date,
+            "end_date": end_date,
+            "per_page": 100 
+        }
+        
         async with aiohttp.ClientSession() as session:
-            # We use the 'upcoming_events' endpoint for the student's dashboard
-            url = f"{base_url}/api/v1/users/self/upcoming_events"
+            url = f"{base_url}/api/v1/calendar_events"
             try:
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url, headers=headers, params=params) as response:
                     if response.status != 200:
                         raise UpdateFailed(f"Canvas API error: {response.status}")
                     return await response.json()
             except Exception as err:
                 raise UpdateFailed(f"Error communicating with Canvas: {err}")
 
-    # Create the coordinator
     coordinator = DataUpdateCoordinator(
         hass,
         LOGGER,
         name=DOMAIN,
         update_method=async_update_data,
-        update_interval=timedelta(minutes=15),
+        update_interval=timedelta(hours=6),
     )
 
     await coordinator.async_config_entry_first_refresh()
-
-    # Store the coordinator for the platforms to use
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
-    # Forward the setup to the sensor platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
