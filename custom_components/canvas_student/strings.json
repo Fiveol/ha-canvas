@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Canvas Student Setup",
+        "description": "Enter your Canvas instance URL and a Developer Access Token.",
+        "data": {
+          "base_url": "Canvas URL (e.g., https://canvas.instructure.com)",
+          "access_token": "Access Token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Canvas",
+      "invalid_auth": "Invalid access token",
+      "unknown": "Unexpected error"
+    }
+  }
+}
