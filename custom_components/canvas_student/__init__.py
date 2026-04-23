@@ -8,7 +8,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN, CONF_BASE_URL, CONF_ACCESS_TOKEN, LOGGER
 
-# Set to calendar to ensure HA loads the correct platform
 PLATFORMS = ["calendar"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -21,17 +20,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         headers = {"Authorization": f"Bearer {token}"}
         
         async with aiohttp.ClientSession() as session:
-            # We use the 'upcoming_events' endpoint for the student's dashboard
-            url = f"{base_url}/api/v1/users/self/upcoming_events"
             try:
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        raise UpdateFailed(f"Canvas API error: {response.status}")
-                    return await response.json()
+                # 1. Fetch User Profile for the name
+                async with session.get(f"{base_url}/api/v1/users/self/profile", headers=headers) as resp:
+                    profile = await resp.json()
+                
+                # 2. Fetch Courses
+                async with session.get(f"{base_url}/api/v1/courses?enrollment_state=active", headers=headers) as resp:
+                    courses = await resp.json()
+
+                # 3. Fetch Upcoming Events
+                async with session.get(f"{base_url}/api/v1/users/self/upcoming_events", headers=headers) as resp:
+                    events = await resp.json()
+
+                return {
+                    "name": profile.get("short_name") or profile.get("name", "Student"),
+                    "courses": courses,
+                    "events": events
+                }
             except Exception as err:
                 raise UpdateFailed(f"Error communicating with Canvas: {err}")
 
-    # Create the coordinator
     coordinator = DataUpdateCoordinator(
         hass,
         LOGGER,
@@ -41,18 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await coordinator.async_config_entry_first_refresh()
-
-    # Store the coordinator for the platforms to use
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
-    # Forward the setup to the calendar platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-    return unload_ok
