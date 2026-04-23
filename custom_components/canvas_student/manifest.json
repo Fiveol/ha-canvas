@@ -1,12 +1,11 @@
 {
   "domain": "canvas_student",
   "name": "Canvas Student",
-  "codeowners": [
-    "@Fiveol"
-  ],
-  "config_flow": true,
   "documentation": "https://github.com/Fiveol/ha-canvas",
-  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Fiveol/ha-canvas/issues",
-  "version": "0.1.0"
+  "dependencies": [],
+  "codeowners": ["@Fiveol"],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "version": "1.0.0"
 }

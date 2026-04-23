@@ -3,17 +3,35 @@
     "step": {
       "user": {
         "title": "Canvas Student Setup",
-        "description": "Enter your Canvas instance URL and a Developer Access Token.",
+        "description": "Integrate your Canvas LMS account into Home Assistant. If you need help generating an access token, [check the documentation here]({documentation_url}).",
         "data": {
-          "base_url": "Canvas URL (e.g., https://canvas.instructure.com)",
+          "base_url": "Canvas Instance URL (e.g., https://canvas.instructure.com)",
+          "access_token": "Access Token"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Canvas Student",
+        "description": "Your credentials or instance URL may have changed. Please provide the updated information for {documentation_url}.",
+        "data": {
+          "base_url": "Canvas Instance URL",
           "access_token": "Access Token"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to Canvas",
-      "invalid_auth": "Invalid access token",
-      "unknown": "Unexpected error"
+      "cannot_connect": "Failed to connect to the Canvas instance. Please check the URL and your internet connection.",
+      "invalid_auth": "Invalid access token. Please ensure your token is active and has the correct permissions.",
+      "unknown": "An unexpected error occurred. Please check the Home Assistant logs."
+    },
+    "abort": {
+      "reconfigure_successful": "The configuration has been updated successfully."
+    }
+  },
+  "entity": {
+    "calendar": {
+      "canvas_assignments": {
+        "name": "Canvas Assignments"
+      }
     }
   }
 }

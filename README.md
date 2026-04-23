@@ -1,46 +1,42 @@
-# Notice
+# Canvas LMS for Home Assistant
 
-The component and platforms in this repository are not meant to be used by a
-user, but as a "blueprint" that custom component developers can build
-upon, to make more awesome stuff.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Fiveol&repository=ha-canvas&category=Integration)
 
-HAVE FUN! 😎
+Bring your school assignments directly into Home Assistant. This integration creates a master calendar for your account and individual calendars for every active course you are enrolled in.
 
-## Why?
+## Features
+- **Master Calendar**: A single view of all upcoming assignments.
+- **Per-Course Calendars**: Separate entities for each class (e.g., `calendar.name_math_101`).
+- **Assignment Details**: Descriptions include the course name and points possible.
+- **Easy Links**: Clicking an event in the HA Calendar will provide the URL directly to the Canvas assignment.
 
-This is simple, by having custom_components look (README + structure) the same
-it is easier for developers to help each other and for users to start using them.
+## Installation
 
-If you are a developer and you want to add things to this "blueprint" that you think more
-developers will have use for, please open a PR to add it :)
+### HACS (Recommended)
+1. Ensure [HACS](https://hacs.xyz/) is installed.
+2. Click the badge above or navigate to HACS > Integrations > 3-dot menu > Custom Repositories.
+3. Add `https://github.com/Fiveol/ha-canvas` with category `Integration`.
+4. Search for "Canvas Student" and install.
+5. Restart Home Assistant.
 
-## What?
+### Manual
+1. Download the `canvas_student` folder from `custom_components`.
+2. Paste it into your Home Assistant `/config/custom_components/` directory.
+3. Restart Home Assistant.
 
-This repository contains multiple files, here is a overview:
+## Configuration
+1. Go to **Settings > Devices & Services > Add Integration**.
+2. Search for **Canvas Student**.
+3. **Base URL**: Enter your school's Canvas URL (e.g., `https://canvas.instructure.com` or `https://university.instructure.com`).
+4. **Access Token**: 
+   - Log into Canvas.
+   - Go to **Account > Settings**.
+   - Scroll down to **Approved Integrations** and click **+ New Access Token**.
+   - Copy and paste that token into Home Assistant.
 
-File | Purpose | Documentation
--- | -- | --
-`.devcontainer.json` | Used for development/testing with Visual Studio Code. | [Documentation](https://code.visualstudio.com/docs/remote/containers)
-`.github/ISSUE_TEMPLATE/*.yml` | Templates for the issue tracker | [Documentation](https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository)
-`custom_components/integration_blueprint/*` | Integration files, this is where everything happens. | [Documentation](https://developers.home-assistant.io/docs/creating_component_index)
-`CONTRIBUTING.md` | Guidelines on how to contribute. | [Documentation](https://help.github.com/en/github/building-a-strong-community/setting-guidelines-for-repository-contributors)
-`LICENSE` | The license file for the project. | [Documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository)
-`README.md` | The file you are reading now, should contain info about the integration, installation and configuration instructions. | [Documentation](https://help.github.com/en/github/writing-on-github/basic-writing-and-formatting-syntax)
-`requirements.txt` | Python packages used for development/lint/testing this integration. | [Documentation](https://pip.pypa.io/en/stable/user_guide/#requirements-files)
+## Limitations
+- **Rolling Window**: This integration uses the "Upcoming Events" endpoint. It displays assignments due in the near future (typically the next few weeks). It is not intended for historical tracking or the entire semester at once.
+- **Sync Interval**: Data refreshes every 15 minutes to keep your dashboard updated without stressing the Canvas API.
 
-## How?
-
-1. Create a new repository in GitHub, using this repository as a template by clicking the "Use this template" button in the GitHub UI.
-1. Open your new repository in Visual Studio Code devcontainer (Preferably with the "`Dev Containers: Clone Repository in Named Container Volume...`" option).
-1. Rename all instances of the `integration_blueprint` to `custom_components/<your_integration_domain>` (e.g. `custom_components/awesome_integration`).
-1. Rename all instances of the `Integration Blueprint` to `<Your Integration Name>` (e.g. `Awesome Integration`).
-1. Run the `scripts/develop` to start HA and test out your new integration.
-
-## Next steps
-
-These are some next steps you may want to look into:
-- Add tests to your integration, [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) can help you get started.
-- Add brand images (logo/icon).
-- Create your first release.
-- Share your integration on the [Home Assistant Forum](https://community.home-assistant.io/).
-- Submit your integration to [HACS](https://hacs.xyz/docs/publish/start).
+---
+*Disclaimer: This integration is not affiliated with or endorsed by Instructure/Canvas LMS.*
