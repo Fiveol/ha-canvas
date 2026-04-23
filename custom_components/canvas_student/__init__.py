@@ -8,7 +8,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN, CONF_BASE_URL, CONF_ACCESS_TOKEN, LOGGER
 
-PLATFORMS = ["calendar"]
+# Added "sensor" here
+PLATFORMS = ["calendar", "sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Canvas Student from a config entry."""
@@ -25,8 +26,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     if resp.status != 200: raise UpdateFailed("Auth failed")
                     profile = await resp.json()
                 
-                # 2. Fetch Courses
-                async with session.get(f"{base_url}/api/v1/courses?enrollment_state=active", headers=headers) as resp:
+                # 2. Fetch Courses WITH Scores
+                # We added include[]=total_scores to the URL
+                course_url = f"{base_url}/api/v1/courses?enrollment_state=active&include[]=total_scores"
+                async with session.get(course_url, headers=headers) as resp:
                     courses = await resp.json()
 
                 # 3. Fetch Upcoming Events
