@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import datetime as dt_util
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
@@ -15,22 +16,22 @@ class CanvasCalendarEntity(CoordinatorEntity, CalendarEntity):
         super().__init__(coordinator)
         self._attr_name = "Canvas Assignments"
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_calendar"
-        self._attr_icon = "mdi:calendar-check"
+        self._attr_icon = "mdi:school-outline"
 
     @property
     def event(self) -> CalendarEvent | None:
-        """Return the next upcoming event (closest to now)."""
+        """Return the next upcoming event from the list."""
         events = self._get_events()
-        now = datetime.now(datetime.utcnow().astimezone().tzinfo)
+        if not events:
+            return None
         
-        # Filter for events that haven't finished yet and pick the first
+        now = datetime.now(dt_util.timezone.utc)
         future_events = [e for e in events if e.start >= now]
         return future_events[0] if future_events else None
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
-        """Return calendar events for the UI within a specific window."""
-        # The coordinator already has the full year; we just return them all
-        # and Home Assistant UI will filter them for the current view.
+        """Return calendar events for the UI."""
+        # The UI provides its own window, but we already have the data
         return self._get_events()
 
     def _get_events(self) -> list[CalendarEvent]:
@@ -38,33 +39,32 @@ class CanvasCalendarEntity(CoordinatorEntity, CalendarEntity):
         if not self.coordinator.data:
             return []
 
-        events = []
+        calendar_events = []
         for item in self.coordinator.data:
-            # Check if this is an assignment
-            if item.get("assignment") is None:
+            # We specifically want assignments
+            if "assignment" not in item and "assignment_id" not in item:
                 continue
                 
-            # Canvas provides 'end_at' for assignment due dates
             due_at_str = item.get("end_at") or item.get("start_at")
             if not due_at_str:
                 continue
 
             try:
-                # Parse UTC string to datetime object
+                # Convert Canvas UTC (Z) to HA localized datetime
                 start_dt = datetime.fromisoformat(due_at_str.replace("Z", "+00:00"))
                 
-                events.append(
+                calendar_events.append(
                     CalendarEvent(
-                        summary=item.get("title"),
-                        start=start_dt - timedelta(minutes=30), # Show as a 30m block ending at due time
+                        summary=item.get("title", "Assignment"),
+                        start=start_dt - timedelta(minutes=30), # 30 min duration
                         end=start_dt,
-                        description=f"Course: {item.get('context_name')}\nURL: {item.get('html_url')}",
+                        description=f"Course: {item.get('context_name')}\n{item.get('html_url')}",
                         location=item.get("context_name"),
                     )
                 )
-            except (ValueError, TypeError):
+            except Exception:
                 continue
 
-        # Sort all events by date
-        events.sort(key=lambda x: x.start)
-        return events
+        # Sort so the UI and next_event logic works correctly
+        calendar_events.sort(key=lambda x: x.start)
+        return calendar_events
