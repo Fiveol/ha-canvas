@@ -5,7 +5,7 @@
         "title": "Canvas Student Setup",
         "description": "Integrate your Canvas LMS account into Home Assistant. If you need help generating an access token, [check the documentation here]({documentation_url}).",
         "data": {
-          "base_url": "Canvas Instance URL (e.g., https://canvas.instructure.com)",
+          "base_url": "Canvas Instance URL",
           "access_token": "Access Token"
         }
       },
