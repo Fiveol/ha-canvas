@@ -8,7 +8,7 @@ class CanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def _validate_canvas_connection(self, base_url, token)
+    async def _validate_canvas_connection(self, base_url, token):
         try:
             async with aiohttp.ClientSession() as session:
                 headers = {"Authorization": f"Bearer {token}"}
