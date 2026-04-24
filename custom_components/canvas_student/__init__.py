@@ -8,7 +8,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN, CONF_BASE_URL, CONF_ACCESS_TOKEN, LOGGER
 
-# Added "sensor" here
 PLATFORMS = ["calendar", "sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -21,18 +20,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         
         async with aiohttp.ClientSession() as session:
             try:
-                # 1. Fetch User Profile
                 async with session.get(f"{base_url}/api/v1/users/self/profile", headers=headers) as resp:
                     if resp.status != 200: raise UpdateFailed("Auth failed")
                     profile = await resp.json()
                 
-                # 2. Fetch Courses WITH Scores
-                # We added include[]=total_scores to the URL
                 course_url = f"{base_url}/api/v1/courses?enrollment_state=active&include[]=total_scores"
                 async with session.get(course_url, headers=headers) as resp:
                     courses = await resp.json()
 
-                # 3. Fetch Upcoming Events
                 async with session.get(f"{base_url}/api/v1/users/self/upcoming_events", headers=headers) as resp:
                     events = await resp.json()
 
